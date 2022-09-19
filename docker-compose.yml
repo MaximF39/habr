@@ -1,0 +1,34 @@
+version: "3"
+
+services:
+    postgresql:
+        image: postgres:14
+        restart: always
+        environment:
+            - POSTGRES_USER=${DATABASE_USER}
+            - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+            - POSTGRES_DB=${DATABASE_NAME}
+        volumes:
+            - pg_data:/var/lib/postgresql/data/
+        ports:
+            - "${DATABASE_PORT}:${DATABASE_PORT}"
+        env_file:
+            - ./.env
+    django_habr:
+        build:
+            context: .
+            dockerfile: ./opt/Dockerfile
+        container_name: django_habr
+        env_file:
+            - ./.env
+        volumes:
+            - ./opt:/opt
+        command:
+            - /bin/sh -c "./start.sh"
+        ports:
+            - "8000:8000"
+        depends_on:
+            -   postgresql
+
+volumes:
+    pg_data:
