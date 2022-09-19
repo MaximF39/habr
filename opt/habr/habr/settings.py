@@ -19,7 +19,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "parse_habr.apps.ArticlesConfig"
+    "rangefilter",
+    "parse_habr.apps.ArticlesConfig",
 ]
 
 MIDDLEWARE = [
@@ -55,11 +56,11 @@ WSGI_APPLICATION = "habr.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "habr",  # os.environ.get("DATABASE_NAME"),
-        "USER": "max",  # os.environ.get("DATABASE_USER"),
-        "PASSWORD": "123123123",  # os.environ.get("DATABASE_PASSWORD"),
-        "HOST": "postgresql",  # os.environ.get("DATABASE_HOST"),
-        "PORT": "5432",  # os.environ.get("DATABASE_PORT"),
+        "NAME": os.environ.get("DATABASE_NAME"),
+        "USER": os.environ.get("DATABASE_USER"),
+        "PASSWORD": os.environ.get("DATABASE_PASSWORD"),
+        "HOST": os.environ.get("DATABASE_HOST"),
+        "PORT": os.environ.get("DATABASE_PORT"),
     }
 }
 
