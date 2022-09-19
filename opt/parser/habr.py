@@ -11,7 +11,11 @@ from utils.utils import validation_count
 
 
 class HabrParse:
-    prefix_url = "https://habr.com"
+    _prefix_url = "https://habr.com"
+
+    @property
+    def prefix_url(self):
+        return self._prefix_url
 
     @property
     def main_article_urls(self):
@@ -32,7 +36,7 @@ class HabrParse:
         return req.text
 
     def _get_url(self, url):
-        return url if url.startswith(self.prefix_url) else self.prefix_url + url
+        return url if url.startswith(self._prefix_url) else self._prefix_url + url
 
     def get_info_page(self, url: str) -> dict:
         info = {}
@@ -58,37 +62,37 @@ class HabrParse:
 
 
 class Habr:
-    isWork = False
-    thrWork = None
-    parser = HabrParse()
-    db = DB()
+    _isWork = False
+    _thrWork = None
+    _parser = HabrParse()
+    _db = DB()
 
     def start(self):
-        if self.isWork:
+        if self._isWork:
             return
-        self.isWork = True
-        self.thrWork = Thread(target=self._work)
-        self.thrWork.start()
+        self._isWork = True
+        self._thrWork = Thread(target=self._work)
+        self._thrWork.start()
 
     def stop(self):
-        if not self.isWork:
+        if not self._isWork:
             return
-        self.isWork = False
-        self.thrWork.join()
-        self.thrWork = None
+        self._isWork = False
+        self._thrWork.join()
+        self._thrWork = None
 
     def _work(self):
-        while self.isWork:
+        while self._isWork:
             try:
-                urls = self.parser.main_article_urls
+                urls = self._parser.main_article_urls
                 for url in urls:
-                    info = self.parser.get_info_page(url=url)
-                    exist = self.db.session.query(Articles.id).filter_by(
+                    info = self._parser.get_info_page(url=url)
+                    exist = self._db.session.query(Articles.id).filter_by(
                         link=info["link"], link_to_author=info["link_to_author"]).first() is not None
                     print("Exist" if exist else "Create", "parse date:", info)
                     if exist is None:
-                        self.db.session.add(Articles(**info))
-                        self.db.session.commit()
+                        self._db.session.add(Articles(**info))
+                        self._db.session.commit()
                 sleep(10 * 60)
             except BaseException as e:
                 print("Ошибка:", e)

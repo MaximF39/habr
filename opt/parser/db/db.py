@@ -1,6 +1,5 @@
 import os
 
-import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from dotenv import load_dotenv
@@ -11,10 +10,8 @@ from utils import singleton
 load_dotenv()
 
 
-
 @singleton
 class DB:
-    orm = sqlalchemy
 
     def __init__(self):
         engine = create_engine(f"postgresql+psycopg2://" + \
