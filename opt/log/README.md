@@ -1,3 +1,2 @@
-This log
-django.out - from django app
-parser.out - from parser.main (parser for habr)
+## django.out - log from django app  <br />
+## parser.out - log from parser (parser for habr)  <br />
