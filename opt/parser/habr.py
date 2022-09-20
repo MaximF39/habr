@@ -1,10 +1,10 @@
+import asyncio
+import time
 from datetime import datetime
-from threading import Thread
-from time import sleep
 
 import requests
+from aiohttp import ClientSession
 from bs4 import BeautifulSoup
-
 from db import Articles
 from db.db import DB
 from utils.utils import validation_count
@@ -22,7 +22,7 @@ class HabrParse:
         soup = self._get_soup("/ru/all")
         class_main_article = "tm-article-snippet__title-link"
         main_titles = soup.findAll("a", class_=class_main_article, href=True)
-        return list(map(lambda el: el["href"], main_titles))
+        return list(map(lambda el: self._get_url(el["href"]), main_titles))
 
     def _get_soup(self, url) -> BeautifulSoup:
         return BeautifulSoup(self._get_page(url), features="html.parser")
@@ -30,17 +30,17 @@ class HabrParse:
     def _get_page(self, url: str) -> str:
         """ url: url or postfix """
         url = self._get_url(url)
-        req = requests.get(url)
-        if req.status_code != 200:
+        response = requests.get(url)
+        if response.status_code != 200:
             raise requests.exceptions.ConnectionError
-        return req.text
+        return response.text
 
     def _get_url(self, url):
         return url if url.startswith(self._prefix_url) else self._prefix_url + url
 
-    def get_info_page(self, url: str) -> dict:
+    def get_info_page(self, url: str, html: str = None) -> dict:
         info = {}
-        soup = self._get_soup(url)
+        soup = BeautifulSoup(html, features="html.parser") if html is not None else self._get_soup(url)
         title_class = "tm-article-snippet__title tm-article-snippet__title_h1"
         titles = soup.findAll("h1", class_=title_class)
 
@@ -63,36 +63,56 @@ class HabrParse:
 
 class Habr:
     _isWork = False
-    _thrWork = None
+    _task = None
     _parser = HabrParse()
     _db = DB()
 
-    def start(self):
+    @property
+    def task(self):
+        return self._task
+
+    @property
+    def isWork(self):
+        return self._isWork
+
+    async def async_start(self):
         if self._isWork:
             return
         self._isWork = True
-        self._thrWork = Thread(target=self._work)
-        self._thrWork.start()
+        while self._isWork:
+            t = time.time()
+            urls = self._parser.main_article_urls
+            asyncio.create_task(self._work(urls))
+            await asyncio.sleep(int(10 * 60 - (time.time() - t)))
 
-    def stop(self):
+    async def async_stop(self):
         if not self._isWork:
             return
         self._isWork = False
-        self._thrWork.join()
-        self._thrWork = None
+        self._task.cancel()
+        self._task = None
 
-    def _work(self):
-        while self._isWork:
-            try:
-                urls = self._parser.main_article_urls
-                for url in urls:
-                    info = self._parser.get_info_page(url=url)
-                    exist = self._db.session.query(Articles.id).filter_by(
-                        link=info["link"], link_to_author=info["link_to_author"]).first() is not None
-                    print("Exist" if exist else "Create", "parse date:", info)
-                    if exist is None:
-                        self._db.session.add(Articles(**info))
-                        self._db.session.commit()
-                sleep(10 * 60)
-            except BaseException as e:
-                print("Ошибка:", e)
+    async def _fetch_urls(self, urls):
+        tasks = []
+        async with ClientSession() as session:
+            for url in urls:
+                task = asyncio.ensure_future(self._get_info_and_append_db(url, session))
+                tasks.append(task)
+            await asyncio.gather(*tasks)
+            self._db.session.commit()
+
+    async def _get_info_and_append_db(self, url, session):
+        """ append db without commit """
+        async with session.get(url) as response:
+            resp = await response.read()
+            info = self._parser.get_info_page(url=url, html=resp)
+            no_exist = self._db.session.query(Articles.id).filter_by(
+                link=info["link"], link_to_author=info["link_to_author"]).first() is None
+            print("Create" if no_exist else "Exist", "parse date:", info)
+            if no_exist:
+                self._db.session.add(Articles(**info))
+
+    async def _work(self, urls):
+        loop = asyncio.get_event_loop()
+        future = asyncio.ensure_future(self._fetch_urls(urls))
+        loop.run_until_complete(future)

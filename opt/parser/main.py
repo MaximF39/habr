@@ -1,11 +1,14 @@
+import asyncio
 from habr import Habr
 
 
-def main():
+async def main():
     habr = Habr()
-    habr.start()
+
+    await asyncio.ensure_future(habr.async_start())
 
 
 if __name__ == "__main__":
     print("Start")
-    main()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
