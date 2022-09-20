@@ -1,1 +1,1 @@
-# Small app with parsing and postgresql
+# Small app with parsing(aiohttp, requests), postgresql(Django ORM, SQLalchemy) and docker
