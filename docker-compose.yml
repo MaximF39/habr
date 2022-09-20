@@ -23,8 +23,7 @@ services:
             - ./.env
         volumes:
             - ./opt:/opt
-        command:
-            - /bin/sh -c "./start.sh"
+        command:    /bin/sh "./start.sh"
         ports:
             - "8000:8000"
         depends_on:

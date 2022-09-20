@@ -2,6 +2,10 @@ from sqlalchemy import Column, Integer, DateTime, String
 
 from db.models.base import Base
 
+__all__ = (
+    "Articles",
+)
+
 
 class BaseModel(Base):
     __abstract__ = True

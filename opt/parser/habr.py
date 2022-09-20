@@ -10,7 +10,7 @@ from db.db import DB
 from utils.utils import validation_count
 
 
-class HabrParse:
+class HabrParses:
     _prefix_url = "https://habr.com"
 
     @property
@@ -64,7 +64,7 @@ class HabrParse:
 class Habr:
     _isWork = False
     _task = None
-    _parser = HabrParse()
+    _parser = HabrParses()
     _db = DB()
 
     @property
@@ -82,7 +82,7 @@ class Habr:
         while self._isWork:
             t = time.time()
             urls = self._parser.main_article_urls
-            asyncio.create_task(self._work(urls))
+            self._task = asyncio.create_task(self._work(urls))
             await asyncio.sleep(int(10 * 60 - (time.time() - t)))
 
     async def async_stop(self):
@@ -93,13 +93,16 @@ class Habr:
         self._task = None
 
     async def _fetch_urls(self, urls):
-        tasks = []
-        async with ClientSession() as session:
-            for url in urls:
-                task = asyncio.ensure_future(self._get_info_and_append_db(url, session))
-                tasks.append(task)
-            await asyncio.gather(*tasks)
-            self._db.session.commit()
+        try:
+            tasks = []
+            async with ClientSession() as session:
+                for url in urls:
+                    task = asyncio.ensure_future(self._get_info_and_append_db(url, session))
+                    tasks.append(task)
+                await asyncio.gather(*tasks)
+                self._db.session.commit()
+        except BaseException as e:
+            print("Ошибка:", e)
 
     async def _get_info_and_append_db(self, url, session):
         """ append db without commit """

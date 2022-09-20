@@ -20,7 +20,7 @@ class DB:
                                os.environ.get("DATABASE_HOST") + ":" +
                                os.environ.get("DATABASE_PORT") + "/" +
                                os.environ.get("DATABASE_NAME"),
-                               pool_pre_ping=True, echo=1)
+                               pool_pre_ping=True, echo=0)
         Base.metadata.create_all(engine)
         session_factory = sessionmaker(bind=engine)
         self.__session = scoped_session(session_factory)()
