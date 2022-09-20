@@ -10,7 +10,7 @@ def singleton(cls):
     return wrapper
 
 
-def validation_count(need: int, get: int, add_info=""):
+def validation_count(need: int, get: int, add_info="") -> None:
     if need != get:
         raise requests.exceptions.InvalidJSONError(
             f"Найдено {get} параметров, а ожидалось {need}. " + add_info)
