@@ -1,4 +1,5 @@
 import asyncio
+import os
 import time
 from abc import ABCMeta, abstractmethod
 from asyncio import Task
@@ -12,7 +13,8 @@ from db.db import DB
 from utils.utils import validation_count
 
 
-class ParserInterface(metaclass=ABCMeta):
+class IParser(metaclass=ABCMeta):
+    @property
     @abstractmethod
     def prefix_url(self) -> str:
         ...
@@ -27,7 +29,7 @@ class ParserInterface(metaclass=ABCMeta):
         ...
 
 
-class HabrParser(ParserInterface):
+class HabrParser(IParser):
     _prefix_url: str = "https://habr.com"
 
     @property
@@ -82,7 +84,7 @@ class HabrParser(ParserInterface):
 class Habr:
     _isWork: bool = False
     _task: Task | None = None
-    _parser: "ParserInterface" = HabrParser()
+    _parser: "IParser" = HabrParser()
     _db: "DB" = DB()
 
     @property
@@ -101,7 +103,7 @@ class Habr:
             t = time.time()
             urls = self._parser.main_article_urls
             self._task = asyncio.create_task(self._work(urls))
-            await asyncio.sleep(10 * 60 - (time.time() - t))
+            await asyncio.sleep(float(os.environ.get("PARSER_HABR_SECOND")) - (time.time() - t))
 
     async def async_stop(self):
         if not self._isWork:
@@ -126,12 +128,16 @@ class Habr:
         """ append db without commit """
         async with session.get(url) as response:
             html = await response.read()
-            info = self._parser.get_info_page(url=url, html=html)
-            no_exist = self._db.session.query(Articles.id).filter_by(
+            try:
+                info = self._parser.get_info_page(url=url, html=html)
+            except Exception as e:
+                print("Ошибка", e)
+            else:
+                no_exist = self._db.session.query(Articles.id).filter_by(
                 link=info["link"], link_to_author=info["link_to_author"]).first() is None
-            print("Create" if no_exist else "Exist", "parse date:", info)
-            if no_exist:
-                self._db.session.add(Articles(**info))
+                print("Create" if no_exist else "Exist", "parse date:", info)
+                if no_exist:
+                    self._db.session.add(Articles(**info))
 
     async def _work(self, urls: list):
         loop = asyncio.get_event_loop()

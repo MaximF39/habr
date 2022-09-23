@@ -1,33 +1,59 @@
-version: "3"
+version: '3.7'
 
 services:
-    postgresql:
-        image: postgres:14
-        restart: always
-        environment:
-            - POSTGRES_USER=${DATABASE_USER}
-            - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
-            - POSTGRES_DB=${DATABASE_NAME}
-        volumes:
-            - pg_data:/var/lib/postgresql/data/
-        ports:
-            - "${DATABASE_PORT}:${DATABASE_PORT}"
-        env_file:
-            - ./.env
-    django_habr:
-        build:
-            context: .
-            dockerfile: ./opt/Dockerfile
-        container_name: django_habr
-        env_file:
-            - ./.env
-        volumes:
-            - ./opt:/opt
-        command:    /bin/sh "./start.sh"
-        ports:
-            - "8000:8000"
-        depends_on:
-            -   postgresql
+  postgresql:
+    image: postgres:14
+    restart: always
+    environment:
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=${DATABASE_NAME}
+    volumes:
+      - pg_data:/var/lib/postgresql/data/
+    expose:
+      - "${DATABASE_PORT}"
+    env_file:
+      - .env
+  django_habr:
+    volumes:
+      - static:$PATH_PROJECT/django_habr/static
+    env_file:
+      - .env
+    restart: always
+    build:
+      context: src/django_habr
+      args:
+          - USER=$USER
+          - PASSWORD=$PASSWORD
+          - DJANGO_PORT=$DJANGO_PORT
+          - PATH_PROJECT=$PATH_PROJECT/django_habr
+    expose:
+      - "${DJANGO_PORT}"
+  parser_habr:
+    depends_on:
+      - postgresql
+    build:
+      context: src/parser_habr
+      dockerfile: Dockerfile
+      args:
+        - USER=$USER
+        - PASSWORD=$PASSWORD
+        - PATH_PROJECT=$PATH_PROJECT/parser_habr
+    restart: always
+    env_file:
+      - .env
+  nginx:
+    build: src/nginx
+    restart: always
+    volumes:
+      - static:/static
+    ports:
+      - "${NGINX_PORT}:${NGINX_PORT}"
+    depends_on:
+      - django_habr
+
 
 volumes:
-    pg_data:
+  pg_data:
+  static:
+

@@ -1,0 +1,27 @@
+FROM python:3.10
+
+ARG USER
+ARG PASSWORD
+ARG PATH_PROJECT
+
+ENV USER=$USER
+ENV PASSWORD=$PASSWORD
+ENV PATH_PROJECT=$PATH_PROJECT
+
+ENV VIRTUAL_ENV=$PATH_PROJECT/venv
+
+RUN useradd -r $USER -p $PASSWORD
+
+COPY . $PATH_PROJECT
+WORKDIR $PATH_PROJECT
+
+RUN python -m venv $VIRTUAL_ENV
+RUN . $VIRTUAL_ENV/bin/activate
+RUN pip install --upgrade pip
+RUN pip install -r req.txt
+
+RUN chmod +x ./start.sh
+
+#USER $USER
+
+ENTRYPOINT ["sh", "./start.sh"]

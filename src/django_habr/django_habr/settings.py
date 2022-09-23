@@ -6,11 +6,12 @@ from dotenv import load_dotenv
 load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("SECRET_KEY")
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG")
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", "", "::1"]
+ALLOWED_HOSTS = ["*"]
+CSRF_TRUSTED_ORIGINS = ['https://0.0.0.0']
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -33,7 +34,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "habr.urls"
+ROOT_URLCONF = "django_habr.urls"
 
 TEMPLATES = [
     {
@@ -51,7 +52,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "habr.wsgi.application"
+WSGI_APPLICATION = "django_habr.wsgi.application"
 
 DATABASES = {
     "default": {
