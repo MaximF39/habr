@@ -1,1 +1,2 @@
-## Small app with parsing(aiohttp, requests), postgresql(Django ORM, SQLalchemy), docker, django
+## Small app with parsing(aiohttp, requests), postgresql(Django ORM, SQLalchemy), docker, django <br>
+## + gunicorn + nginx
