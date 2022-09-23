@@ -1,1 +1,1 @@
-from .utils import singleton
+from .utils import *

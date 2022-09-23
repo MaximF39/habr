@@ -1,12 +1,9 @@
 import datetime
 
 from django.contrib import admin
-from django.contrib.admin import DateFieldListFilter, filters
-from django.forms import SelectDateWidget
 from rangefilter.filters import DateRangeFilter
 
-from .models import *
-
+from .models import Articles
 
 @admin.register(Articles)
 class ArticlesAdmin(admin.ModelAdmin):

@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, DateTime, String
 
-from db.models.base import Base
+from db.models import Base
 
 __all__ = (
     "Articles",
