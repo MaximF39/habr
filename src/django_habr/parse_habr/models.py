@@ -3,9 +3,10 @@ from django.urls import reverse
 
 
 class Articles(models.Model):
-    link = models.CharField(max_length=4000, null=False, primary_key=True)
+    id = models.AutoField(primary_key=True)
     title: str = models.CharField(max_length=2000, null=False)
     date_published = models.DateField(null=False)
+    link = models.CharField(max_length=4000, null=False, unique=True)
     link_to_author = models.CharField(max_length=4000, null=False)
 
     def __str__(self):

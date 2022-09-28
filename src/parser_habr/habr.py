@@ -116,14 +116,8 @@ class Habr:
         try:
             async with ClientSession() as session:
                 tasks = tuple(asyncio.ensure_future(self._get_info_and_append_db(url, session)) for url in urls)
-                data_info = await asyncio.gather(*tasks)
-            for info in data_info:
-                exist = self._db.session.query(Articles.link).filter_by(
-                        link=info["link"]).first() is not None
-                print(("Exist" if exist else "Create"), "parse date:", info)
-                if not exist:
-                    self._db.session.add(Articles(**info))
-            self._db.session.commit()
+                articles = await asyncio.gather(*tasks)
+            self._db.save_articles(articles)
         except Exception as e:
             print("Ошибка:", e)
 
