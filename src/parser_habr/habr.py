@@ -110,7 +110,8 @@ class Habr:
             return
         self._is_work = False
         for task in self.tasks:
-            await task
+            if not task.done():
+                task.cancel()
         self._tasks.clear()
 
     async def _fetch_urls(self, urls: list):
