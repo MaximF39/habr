@@ -9,7 +9,6 @@ import requests
 from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 from db.models import Articles
-from db import DB
 from utils import validation_count
 
 
@@ -86,9 +85,9 @@ class Habr:
     _is_work: bool = False
     _tasks: {Task, ...}
     _parser: "IParser" = HabrParser()
-    _db: "DB" = DB
 
-    def __init__(self):
+    def __init__(self, _db):
+        self._db = _db
         self._tasks = set()
 
     @property
@@ -117,7 +116,13 @@ class Habr:
         try:
             async with ClientSession() as session:
                 tasks = tuple(asyncio.ensure_future(self._get_info_and_append_db(url, session)) for url in urls)
-                await asyncio.gather(*tasks)
+                data_info = await asyncio.gather(*tasks)
+            for info in data_info:
+                exist = self._db.session.query(Articles.link).filter_by(
+                        link=info["link"]).first() is not None
+                print(("Exist" if exist else "Create"), "parse date:", info)
+                if not exist:
+                    self._db.session.add(Articles(**info))
             self._db.session.commit()
         except Exception as e:
             print("Ошибка:", e)
@@ -130,12 +135,7 @@ class Habr:
                 info = self._parser.get_info_page(url=url, html=html)
             except Exception as e:
                 print("Ошибка", e)
-            else:
-                exist = self._db.session.query(Articles.id).filter_by(
-                    link=info["link"], link_to_author=info["link_to_author"]).first() is not None
-                print(("Exist" if exist else "Create"), "parse date:", info)
-                if not exist:
-                    self._db.session.add(Articles(**info))
+            return info
 
     async def _work_process(self):
         while self._is_work:
