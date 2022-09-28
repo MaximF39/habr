@@ -15,3 +15,13 @@ class Articles(Base):
     date_published = Column(DateTime(), nullable=False)
     link = Column(String(length=4000), nullable=False, unique=True)
     link_to_author = Column(String(length=4000), nullable=False, primary_key=True)
+
+    @staticmethod
+    def my_save(session, articles):
+        for info in articles:
+            exist = session.query(Articles.link).filter_by(
+                link=info["link"]).first() is not None
+            print(("Exist" if exist else "Create"), "parse date:", info)
+            if not exist:
+                session.add(Articles(**info))
+        session.commit()

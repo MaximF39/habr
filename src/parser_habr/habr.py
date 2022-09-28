@@ -117,7 +117,7 @@ class Habr:
             async with ClientSession() as session:
                 tasks = tuple(asyncio.ensure_future(self._get_info_and_append_db(url, session)) for url in urls)
                 articles = await asyncio.gather(*tasks)
-            self._db.save_articles(articles)
+            Articles.my_save(self._db.session, articles)
         except Exception as e:
             print("Ошибка:", e)
 

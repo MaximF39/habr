@@ -34,14 +34,5 @@ class _DB:
     def session(self):
         return self.__session
 
-    def save_articles(self, articles: list) -> None:
-        for info in articles:
-            exist = self.session.query(Articles.link).filter_by(
-                link=info["link"]).first() is not None
-            print(("Exist" if exist else "Create"), "parse date:", info)
-            if not exist:
-                self.session.add(Articles(**info))
-        self.session.commit()
-
 
 DB = _DB()
