@@ -23,9 +23,8 @@ class IParser(metaclass=ABCMeta):
     def get_info_page(self, url: str, html: str | bytes) -> dict:
         ...
 
-    @property
     @abstractmethod
-    def main_article_urls(self) -> list:
+    def get_urls_to_main_articles(self) -> list:
         ...
 
 
@@ -36,8 +35,7 @@ class HabrParser(IParser):
     def prefix_url(self) -> str:
         return self._prefix_url
 
-    @property
-    def main_article_urls(self) -> list:
+    def get_urls_to_main_articles(self) -> list:
         soup = self._get_soup("/ru/all")
         class_main_article = "tm-article-snippet__title-link"
         main_titles = soup.findAll("a", class_=class_main_article, href=True)
@@ -85,46 +83,42 @@ class HabrParser(IParser):
 
 
 class Habr:
-    _isWork: bool = False
-    _task: Task | None = None
+    _is_work: bool = False
+    _tasks: {Task, ...}
     _parser: "IParser" = HabrParser()
     _db: "DB" = DB
 
-    @property
-    def task(self):
-        return self._task
+    def __init__(self):
+        self._tasks = set()
 
     @property
-    def isWork(self):
-        return self._isWork
+    def tasks(self):
+        return self._tasks
+
+    @property
+    def is_work(self):
+        return self._is_work
 
     async def async_start(self):
-        if self._isWork:
+        if self._is_work:
             return
-        self._isWork = True
-        while self._isWork:
-            start = time.time()
-            urls = self._parser.main_article_urls
-            self._task = asyncio.create_task(self._work(urls))
-            end = time.time()
-            await asyncio.sleep(float(os.getenv("PARSER_HABR_SECOND")) - (end - start))
+        self._is_work = True
+        task = asyncio.create_task(self._work_process(), name="_work_process")
+        self._tasks.add(task)
 
     async def async_stop(self):
-        if not self._isWork:
+        if not self._is_work:
             return
-        self._isWork = False
-        self._task.cancel()
-        self._task = None
+        self._is_work = False
+        await asyncio.gather(*self.tasks)
+        self._tasks.clear()
 
     async def _fetch_urls(self, urls: list):
         try:
-            tasks = []
             async with ClientSession() as session:
-                for url in urls:
-                    task = asyncio.ensure_future(self._get_info_and_append_db(url, session))
-                    tasks.append(task)
+                tasks = tuple(asyncio.ensure_future(self._get_info_and_append_db(url, session)) for url in urls)
                 await asyncio.gather(*tasks)
-                self._db.session.commit()
+            self._db.session.commit()
         except Exception as e:
             print("Ошибка:", e)
 
@@ -137,13 +131,21 @@ class Habr:
             except Exception as e:
                 print("Ошибка", e)
             else:
-                no_exist = self._db.session.query(Articles.id).filter_by(
-                    link=info["link"], link_to_author=info["link_to_author"]).first() is None
-                print("Create" if no_exist else "Exist", "parse date:", info)
-                if no_exist:
+                exist = self._db.session.query(Articles.id).filter_by(
+                    link=info["link"], link_to_author=info["link_to_author"]).first() is not None
+                print(("Exist" if exist else "Create"), "parse date:", info)
+                if not exist:
                     self._db.session.add(Articles(**info))
 
+    async def _work_process(self):
+        while self._is_work:
+            start = time.time()
+            urls = self._parser.get_urls_to_main_articles()
+            task = asyncio.create_task(self._work(urls))
+            self._tasks.add(task)
+            task.add_done_callback(self._tasks.discard)
+            end = time.time()
+            await asyncio.sleep(float(os.getenv("PARSER_HABR_SECOND")) - (end - start))
+
     async def _work(self, urls: list):
-        loop = asyncio.get_event_loop()
-        future = asyncio.ensure_future(self._fetch_urls(urls))
-        loop.run_until_complete(future)
+        await self._fetch_urls(urls)

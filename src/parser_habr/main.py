@@ -4,13 +4,12 @@ from habr import Habr
 
 async def async_main():
     habr = Habr()
-    await asyncio.ensure_future(habr.async_start())
+    await habr.async_start()
+    await asyncio.sleep(1e4)
 
 
 def main():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(async_main())
+    asyncio.run(async_main())
 
 
 if __name__ == "__main__":
