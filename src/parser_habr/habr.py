@@ -109,7 +109,8 @@ class Habr:
         if not self._is_work:
             return
         self._is_work = False
-        await asyncio.gather(*self.tasks)
+        for task in self.tasks:
+            await task
         self._tasks.clear()
 
     async def _fetch_urls(self, urls: list):
